@@ -62,9 +62,22 @@ fn derive_resolvers(input: &DeriveData) -> Vec<TokenStream2> {
         .fields
         .iter()
         .map(|field| {
-            let Field { ident, .. } = field;
+            let Field { ident, ty, .. } = field;
 
             let output_ty = with_hash_ident(base, field);
+
+            let hashing = match ty.wrapper {
+                Wrapper::Vec => quote! {
+                    value.hash(&mut hasher);
+                },
+                Wrapper::Option => {
+                    quote! {
+                        if let Some(val) = value {
+                            val.hash(&mut hasher)
+                        }
+                    }
+                }
+            };
             quote! {
                 async fn #ident(&self, ctx: &Context<'_>,) -> Result<#output_ty> {
                     use std::hash::{Hasher, Hash};
@@ -72,7 +85,7 @@ fn derive_resolvers(input: &DeriveData) -> Vec<TokenStream2> {
                     let value = &self.#ident;
 
                     let mut hasher = std::collections::hash_map::DefaultHasher::new();
-                    value.hash(&mut hasher);
+                    #hashing
                     let hash = hasher.finish().to_string();
 
                     Ok(#output_ty {

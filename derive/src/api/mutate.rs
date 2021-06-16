@@ -36,34 +36,64 @@ fn derive_new(input: &DeriveData) -> TokenStream2 {
 
     let store = Ident::new(format!("{}Store", base.to_string()).as_str(), base.span());
 
-    let params = input
+    let params = input.fields.iter().map(|field| {
+        let Field {
+            ident,
+            attributes,
+            ty,
+            ..
+        } = field;
+        let ty = if attributes.contains(&Attribute::Struct) {
+            let ident = Ident::new(
+                format!("{}Input", ty.ty_str()).to_camel_case().as_str(),
+                ident.span(),
+            );
+            match ty.wrapper {
+                Wrapper::Option => quote! { Option<#ident> },
+                Wrapper::Vec => quote! { Option<Vec<#ident>> },
+            }
+        } else {
+            field.wrapped()
+        };
+        quote! {
+            #ident: #ty
+        }
+    });
+
+    let fields = input
         .fields
         .iter()
         .filter(|field| !field.is_identifier())
         .map(|field| {
-            let Field { ident, .. } = field;
-            let ty = field.wrapped();
-            quote! {
-                #ident: #ty
+            let name = &field.ident;
+
+            if field.attributes.contains(&Attribute::Struct) {
+                match field.ty.wrapper {
+                    Wrapper::Vec => quote! {
+                        #name: #name.unwrap_or_default().into_iter().map(|val| val.into()).collect()
+                    },
+                    Wrapper::Option => {
+                        quote! {
+                            #name: #name.map(|val| val.into())
+                        }
+                    }
+                }
+            } else {
+                quote! { #name }
             }
         });
 
-    let fields = input.fields.iter().map(|field| {
-        let name = &field.ident;
-
-        quote! { #name }
-    });
+    let mutate_permitted = input.auth_attribute().mutate;
 
     quote! {
         async fn #func_name(
             &self,
             ctx: &Context<'_>,
-            identifier: Option<Vec<atoms::IdentifierInput>>,
             #(#params,)*
         ) -> Result<atoms::Identifier> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            // identity.is_authorized(auth::Action::CreateOrganization)?;
+            identity.is_authorized(vec![#(#mutate_permitted),*])?;
 
             let mut identifier: Vec<_> = identifier
                 .unwrap_or_default()
@@ -78,6 +108,7 @@ fn derive_new(input: &DeriveData) -> TokenStream2 {
             identifier.push(new_identifier.clone());
 
             let doc = #base {
+                identifier,
                 #(#fields,)*
             };
 
@@ -115,7 +146,7 @@ fn derive_update(input: &DeriveData) -> TokenStream2 {
     let store = Ident::new(format!("{}Store", base.to_string()).as_str(), base.span());
 
     let params = input.fields.iter().map(|field| {
-        let Field { ident, ty, .. } = field;
+        let Field { ident, .. } = field;
         let delta = Ident::new(
             format!(
                 "Delta{}{}",
@@ -136,6 +167,8 @@ fn derive_update(input: &DeriveData) -> TokenStream2 {
         quote! { #name: #name.map(|del| del.into()) }
     });
 
+    let mutate_permitted = input.auth_attribute().mutate;
+
     quote! {
         async fn #func_name(
             &self,
@@ -145,7 +178,7 @@ fn derive_update(input: &DeriveData) -> TokenStream2 {
         ) -> Result<#base> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            // identity.is_authorized(auth::Action::UpdateOrganization)?;
+            identity.is_authorized(vec![#(#mutate_permitted),*])?;
 
             let delta = #store {
                 #(#fields,)*

@@ -11,6 +11,7 @@ heck = "0.3.3"
 proc-macro2 = "1.0.27"
 quote = "1.0.9"
 syn = { version = "1.0.73", features = ["full"] }
+auth = { path = "../auth" }
 
 [dev-dependencies]
 trybuild = "1.0.42"

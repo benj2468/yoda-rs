@@ -1,7 +1,7 @@
 use heck::CamelCase;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
-use syn::{spanned::Spanned, token::Token};
+use syn::spanned::Spanned;
 
 use super::*;
 use crate::DeriveData;

@@ -1,6 +1,9 @@
-use std::convert::{TryFrom, TryInto};
+use self::attribute::auth::AuthAttribute;
 
 use super::*;
+use proc_macro::Span;
+use std::convert::{TryFrom, TryInto};
+use syn::parse::Parse;
 
 pub(crate) struct DeriveData {
     pub(crate) ident: Ident,
@@ -33,6 +36,22 @@ impl From<TokenStream> for DeriveData {
             ident,
             vis,
         }
+    }
+}
+
+impl DeriveData {
+    pub fn auth_attribute(&self) -> AuthAttribute {
+        self.attributes
+            .iter()
+            .find_map(|attr| {
+                if let Attribute::Auth(attr) = attr {
+                    Some(attr)
+                } else {
+                    None
+                }
+            })
+            .cloned()
+            .unwrap_or_default()
     }
 }
 
@@ -150,23 +169,33 @@ fn get_inner_ty(origin: &PathSegment) -> syn::Type {
         _ => unimplemented!("Only Angle Bracketed paths supported"),
     }
 }
-#[derive(PartialEq, Eq)]
+
+mod attribute;
+
+#[derive(PartialEq, Eq, Debug)]
 pub(crate) enum Attribute {
     Struct,
-    Default,
+    Auth(attribute::auth::AuthAttribute),
 }
 
 impl TryFrom<syn::Attribute> for Attribute {
-    type Error = String;
+    type Error = syn::parse::Error;
 
     fn try_from(attr: syn::Attribute) -> Result<Self, Self::Error> {
         if let Some(seg) = attr.path.segments.last() {
             match seg.ident.to_string().as_str() {
                 "construct" => Ok(Self::Struct),
-                _ => Err("That attribute is not supported yet".into()),
+                "auth" => Ok(Self::Auth(attr.parse_args()?)),
+                _ => Err(syn::parse::Error::new(
+                    seg.ident.span(),
+                    "That attribute is not supported yet",
+                )),
             }
         } else {
-            Err("Only segmented attributes".into())
+            Err(syn::parse::Error::new(
+                attr.bracket_token.span,
+                "Only path attributes",
+            ))
         }
     }
 }

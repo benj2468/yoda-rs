@@ -1,22 +1,17 @@
 use actix_web::{dev::ServiceRequest, error::Result, HttpMessage};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use jwks_client::error::Error;
-use jwks_client::keyset::KeyStore;
+use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+
+mod role;
+pub use role::Role;
 
 #[derive(Clone, PartialEq, Eq)]
 pub enum Action {
-    ReadOrganization,
-    UpdateOrganization,
-    CreateOrganization,
+    Query,
+    Update,
+    Create,
     All,
-}
-
-#[derive(Clone, PartialEq, Eq)]
-pub enum Role {
-    User,
-    Organization,
-    Admin,
 }
 
 #[derive(Clone)]
@@ -27,54 +22,53 @@ pub struct Identity {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
-    iss: String,
     sub: String,
     exp: usize,
+    app_metadata: AppMetaData,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AppMetaData {
+    roles: Vec<String>,
 }
 
 impl Identity {
-    pub async fn from_token(_token: &str) -> Result<Self> {
-        // let authority = std::env::var("AUTHORITY").expect("AUTHORITY must be set");
+    pub async fn from_token(token: &str) -> Result<Self> {
+        let secret =
+            std::env::var("JWK").map_err(|e| actix_web::error::ErrorExpectationFailed(e))?;
 
-        // let key_set = KeyStore::new_from(&format!(
-        //     "{}{}",
-        //     authority.as_str(),
-        //     ".well-known/jwks.json"
-        // ))
-        // .await
-        // .unwrap();
+        let token = decode::<Claims>(
+            token,
+            &DecodingKey::from_secret(secret.as_ref()),
+            &Validation::default(),
+        )
+        .map_err(|e| actix_web::error::ErrorForbidden(e))?;
 
-        // let jwt = key_set
-        //     .verify(token)
-        //     .map_err(|_| actix_web::error::ErrorForbidden("Could not verify JWT"))?;
-
-        // let payload = jwt.payload();
-
-        let roles = vec![Role::Admin];
-
-        // Ok(Self {
-        //     roles: roles,
-        //     user_id: payload.sub().map(|e| e.into()).unwrap_or_default(),
-        // })
+        let roles = token
+            .claims
+            .app_metadata
+            .roles
+            .iter()
+            .map(|role| match role.as_str() {
+                "admin" => Ok(Role::Admin),
+                "user" => Ok(Role::User),
+                "organization" => Ok(Role::Organization),
+                _ => Err(actix_web::error::ErrorUnauthorized(
+                    "Must provide at least some role",
+                )),
+            })
+            .collect::<Result<Vec<Role>>>()?;
 
         Ok(Self {
             roles,
-            user_id: "fake_id".into(),
+            user_id: token.claims.sub,
         })
     }
 
-    pub fn is_authorized(&self, action: Action) -> async_graphql::Result<()> {
-        let permitted_actions = self
-            .roles
-            .iter()
-            .flat_map(|role| match role {
-                Role::User => vec![Action::ReadOrganization],
-                Role::Admin => vec![Action::All],
-                Role::Organization => vec![Action::ReadOrganization],
-            })
-            .collect::<Vec<_>>();
-
-        (permitted_actions.contains(&action) || permitted_actions.contains(&Action::All))
+    pub fn is_authorized(&self, permissive_roles: Vec<Role>) -> async_graphql::Result<()> {
+        permissive_roles
+            .into_iter()
+            .any(|role| self.roles.contains(&role))
             .then(|| ())
             .ok_or_else(|| {
                 async_graphql::Error::new("Your identitiy is not authorized to perform that action")

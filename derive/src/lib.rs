@@ -4,12 +4,11 @@ use quote::quote;
 use syn::{Data, DeriveInput, GenericArgument, Ident, PathArguments, PathSegment, Visibility};
 
 mod api;
-mod atom;
 
 mod data;
 pub(crate) use data::*;
 
-#[proc_macro_derive(Api, attributes(construct))]
+#[proc_macro_derive(Api, attributes(construct, auth))]
 pub fn derive_api(input: TokenStream) -> TokenStream {
     api::derive(input.into())
 }

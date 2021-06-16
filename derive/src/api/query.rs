@@ -36,11 +36,13 @@ fn derive_find(input: &DeriveData) -> TokenStream2 {
 
     let store = Ident::new(format!("{}Store", base.to_string()).as_str(), base.span());
 
+    let query_permitted = input.auth_attribute().query;
+
     quote! {
         async fn #func_name(&self, ctx: &Context<'_>, id: String) -> Result<#base> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            // identity.is_authorized(auth::Action::ReadOrganization)?;
+            identity.is_authorized(vec![#(#query_permitted),*])?;
 
             let dels = store::sql::Driver::query::<#base, #store>(pool, &id)
                 .await
@@ -60,6 +62,8 @@ fn derive_search(input: &DeriveData) -> TokenStream2 {
 
     let search = Ident::new(format!("{}Search", base.to_string()).as_str(), base.span());
 
+    let query_permitted = input.auth_attribute().query;
+
     quote! {
         /// Search for #base
         /// ### Defaults
@@ -75,7 +79,7 @@ fn derive_search(input: &DeriveData) -> TokenStream2 {
         ) -> Result<Connection<usize, #base>> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            // identity.is_authorized(auth::Action::ReadOrganization)?;
+            identity.is_authorized(vec![#(#query_permitted),*])?;
 
             let doc = #search { name };
 

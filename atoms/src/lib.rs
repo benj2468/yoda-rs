@@ -81,3 +81,24 @@ pub enum Tag {
     Education,
     Politics,
 }
+
+#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Hash, Clone, Debug, PartialEq)]
+pub struct Reference {
+    ty: String,
+    value: Identifier,
+}
+
+#[derive(InputObject)]
+pub struct ReferenceInput {
+    pub ty: String,
+    pub value: IdentifierInput,
+}
+
+impl From<ReferenceInput> for Reference {
+    fn from(input: ReferenceInput) -> Self {
+        Self {
+            ty: input.ty,
+            value: input.value.into(),
+        }
+    }
+}
