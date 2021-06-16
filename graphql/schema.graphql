@@ -1,0 +1,158 @@
+type Query {
+	findOrganization(id: String!): Organization!
+	"""
+	Search for #base
+	### Defaults
+	Cursor: 0
+	
+	Limit: 100
+	"""
+	searchOrganization(name: String, cursor: String, limit: Int): OrganizationConnection!
+}
+type OrganizationCeoWithHash {
+	value: String
+	hash: String!
+}
+type OrganizationConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [OrganizationEdge]
+}
+"""
+Information about pagination in a connection
+"""
+type PageInfo {
+	"""
+	When paginating backwards, are there more items?
+	"""
+	hasPreviousPage: Boolean!
+	"""
+	When paginating forwards, are there more items?
+	"""
+	hasNextPage: Boolean!
+	"""
+	When paginating backwards, the cursor to continue.
+	"""
+	startCursor: String
+	"""
+	When paginating forwards, the cursor to continue.
+	"""
+	endCursor: String
+}
+"""
+An edge in a connection.
+"""
+type OrganizationEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Organization!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+type Organization {
+	identifier: OrganizationIdentifierWithHash!
+	name: OrganizationNameWithHash!
+	mission: OrganizationMissionWithHash!
+	description: OrganizationDescriptionWithHash!
+	established: OrganizationEstablishedWithHash!
+	tag: OrganizationTagWithHash!
+	ceo: OrganizationCeoWithHash!
+}
+type OrganizationIdentifierWithHash {
+	value: [Identifier!]!
+	hash: String!
+}
+type Identifier {
+	value: String!
+	system: IdentifierSystem!
+	tier: IdentifierTier!
+}
+enum IdentifierSystem {
+	YODA
+	OTHER
+}
+enum IdentifierTier {
+	PRIMARY
+	SECONDARY
+	OTHER
+}
+type OrganizationNameWithHash {
+	value: String
+	hash: String!
+}
+type OrganizationMissionWithHash {
+	value: String
+	hash: String!
+}
+type OrganizationDescriptionWithHash {
+	value: String
+	hash: String!
+}
+type OrganizationEstablishedWithHash {
+	value: DateTime
+	hash: String!
+}
+"""
+Implement the DateTime<Utc> scalar
+
+The input/output is a string in RFC3339 format.
+"""
+scalar DateTime
+type OrganizationTagWithHash {
+	value: [Tag!]!
+	hash: String!
+}
+enum Tag {
+	RELIGIOUS
+	EDUCATION
+	POLITICS
+}
+type Mutate {
+	newOrganization(identifier: [IdentifierInput!], name: String, mission: String, description: String, established: DateTime, tag: [Tag!]!, ceo: String): Identifier!
+	updateOrganization(id: ID!, identifier: DeltaOrganizationIdentifier, name: DeltaOrganizationName, mission: DeltaOrganizationMission, description: DeltaOrganizationDescription, established: DeltaOrganizationEstablished, tag: DeltaOrganizationTag, ceo: DeltaOrganizationCeo): Organization!
+}
+input DeltaOrganizationDescription {
+	start: String
+	end: String
+}
+input DeltaOrganizationEstablished {
+	start: String
+	end: DateTime
+}
+input DeltaOrganizationTag {
+	start: String
+	end: [Tag!]
+}
+input DeltaOrganizationCeo {
+	start: String
+	end: String
+}
+input IdentifierInput {
+	value: String!
+	system: IdentifierSystem!
+	tier: IdentifierTier!
+}
+input DeltaOrganizationIdentifier {
+	start: String
+	end: [IdentifierInput!]
+}
+input DeltaOrganizationName {
+	start: String
+	end: String
+}
+input DeltaOrganizationMission {
+	start: String
+	end: String
+}
+schema {
+	query: Query
+	mutation: Mutate
+}

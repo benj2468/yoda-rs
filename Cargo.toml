@@ -1,0 +1,34 @@
+[package]
+name = "yoda"
+version = "0.1.0"
+authors = ["benjcape"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix-web = "3"
+actix-rt = "1.1.0"
+async-graphql = "2.8.5"
+async-graphql-actix-web = "2.8.5"
+auth = { path = "auth" }
+org-service = { path = "org-service" }
+actix-web-httpauth = "0.5.1"
+dotenv = "0.15.0"
+store = { path = "store" }
+schema = { path = "schema" }
+sqlx = { version = "0.5", features = ["postgres", "runtime-async-std-native-tls"] }
+actix-cors = "0.5.4"
+
+[build-dependencies]
+async-graphql = "2.8.5"
+schema = { path = "schema" }
+
+[workspace]
+members = [
+    "org-service",
+    "auth",
+    "store",
+    "schema",
+    "derive"
+]
