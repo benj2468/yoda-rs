@@ -11,3 +11,6 @@
 
 # From cargo-expand
 *expand.rs 
+
+
+.*env*
