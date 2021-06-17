@@ -19,7 +19,7 @@ impl syn::parse::Parse for AuthAttribute {
                     syn::Expr::Path(path) => path
                         .path
                         .get_ident()
-                        .map(|ident| ident.to_string() == "mutate")
+                        .map(|ident| *ident == "mutate")
                         .unwrap_or_default(),
                     _ => unimplemented!("Only path expressions"),
                 });
@@ -35,9 +35,11 @@ fn from_expr(expr: Option<&&ExprAssign>) -> Vec<auth::Role> {
         syn::Expr::Array(array) => array
             .elems
             .iter()
-            .filter_map(|element| match element {
+            .map(|element| match element {
                 syn::Expr::Lit(lit) => match &lit.lit {
-                    syn::Lit::Str(s) => auth::Role::try_from(&s.value()).ok(),
+                    syn::Lit::Str(s) => {
+                        auth::Role::try_from(&s.value()).unwrap_or_else(|e| panic!("{}", e))
+                    }
                     _ => unimplemented!("Elements of array must be Literals str"),
                 },
                 _ => unimplemented!("Elements of array must be Literals"),

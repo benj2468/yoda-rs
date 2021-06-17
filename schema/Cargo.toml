@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 org-service = { path = "../org-service" }
 async-graphql = "2.8.5"
+account-service = { path = "../account-service" }

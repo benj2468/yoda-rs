@@ -8,7 +8,7 @@ mod api;
 mod data;
 pub(crate) use data::*;
 
-#[proc_macro_derive(Api, attributes(construct, auth))]
+#[proc_macro_derive(Api, attributes(construct, auth, searchable))]
 pub fn derive_api(input: TokenStream) -> TokenStream {
     api::derive(input.into())
 }

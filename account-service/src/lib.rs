@@ -8,32 +8,28 @@ use atoms::delta::Rollup;
 use atoms::delta::{check_delta, Del, Delta, Store};
 use atoms::pagination::PaginationOption;
 use atoms::search::{Search, SqlQuery};
+use atoms::IdentifierInput;
 use atoms::Tag;
-use atoms::{IdentifierInput, ReferenceInput};
-use chrono::prelude::{DateTime, Utc};
 use derive::Api;
 
 #[derive(Default, Clone, Debug, Api)]
 #[auth(
-    mutate = ["admin", "organization"],
-    query = ["admin", "organization", "user"]
+    mutate = ["admin", "service"],
+    query = ["admin", "service", "user"]
 )]
-struct Organization {
+struct Account {
     #[construct]
     identifier: Vec<atoms::Identifier>,
     #[searchable]
-    name: Option<String>,
-    mission: Option<String>,
-    description: Option<String>,
-    established: Option<DateTime<Utc>>,
-    tag: Vec<Tag>,
-    ceo: Option<String>,
-    #[construct]
-    managing_entity: Vec<atoms::Reference>,
+    email: Option<String>,
+    password: Option<String>,
+    first_name: Option<String>,
+    last_name: Option<String>,
+    interests: Vec<Tag>,
 }
 
 #[derive(Default, MergedObject)]
-pub struct OrgQuery(OrganizationQuery);
+pub struct AcctQuery(AccountQuery);
 
 #[derive(Default, MergedObject)]
-pub struct OrgMutate(OrganizationMutate);
+pub struct AcctMutate(AccountMutate);

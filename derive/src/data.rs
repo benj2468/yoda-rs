@@ -1,12 +1,10 @@
 use self::attribute::auth::AuthAttribute;
-
 use super::*;
-use proc_macro::Span;
 use std::convert::{TryFrom, TryInto};
-use syn::parse::Parse;
 
 pub(crate) struct DeriveData {
     pub(crate) ident: Ident,
+    #[allow(dead_code)]
     pub(crate) vis: Visibility,
     pub(crate) fields: Vec<Field>,
     pub(crate) attributes: Vec<Attribute>,
@@ -57,6 +55,7 @@ impl DeriveData {
 
 pub(crate) struct Field {
     pub(crate) ident: Ident,
+    #[allow(dead_code)]
     pub(crate) vis: Visibility,
     pub(crate) ty: Type,
     pub(crate) attributes: Vec<Attribute>,
@@ -64,7 +63,7 @@ pub(crate) struct Field {
 
 impl Field {
     pub fn is_identifier(&self) -> bool {
-        self.ident.to_string() == "identifier"
+        self.ident == "identifier"
     }
     pub fn wrapped(&self) -> TokenStream2 {
         let ty = &self.ty.ty;
@@ -106,7 +105,7 @@ pub(crate) struct Type {
 
 impl From<syn::Type> for Type {
     fn from(ty: syn::Type) -> Self {
-        match ty.clone() {
+        match ty {
             syn::Type::Path(type_path) => {
                 let seg = type_path
                     .path
@@ -122,7 +121,7 @@ impl From<syn::Type> for Type {
                     _ => unimplemented!("Type must be Vec or option wrapped"),
                 };
 
-                Self { ty, wrapper }
+                Self { wrapper, ty }
             }
             _ => unimplemented!("Only path types are supported"),
         }
@@ -176,26 +175,26 @@ mod attribute;
 pub(crate) enum Attribute {
     Struct,
     Auth(attribute::auth::AuthAttribute),
+    Search,
+    Doc,
 }
 
 impl TryFrom<syn::Attribute> for Attribute {
-    type Error = syn::parse::Error;
+    type Error = ();
 
     fn try_from(attr: syn::Attribute) -> Result<Self, Self::Error> {
         if let Some(seg) = attr.path.segments.last() {
             match seg.ident.to_string().as_str() {
                 "construct" => Ok(Self::Struct),
-                "auth" => Ok(Self::Auth(attr.parse_args()?)),
-                _ => Err(syn::parse::Error::new(
-                    seg.ident.span(),
-                    "That attribute is not supported yet",
+                "auth" => Ok(Self::Auth(
+                    attr.parse_args().unwrap_or_else(|e| panic!("{}", e)),
                 )),
+                "searchable" => Ok(Self::Search),
+                "doc" => Ok(Self::Doc),
+                _ => Err(()),
             }
         } else {
-            Err(syn::parse::Error::new(
-                attr.bracket_token.span,
-                "Only path attributes",
-            ))
+            Err(())
         }
     }
 }

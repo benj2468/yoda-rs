@@ -86,6 +86,7 @@ fn derive_new(input: &DeriveData) -> TokenStream2 {
     let mutate_permitted = input.auth_attribute().mutate;
 
     quote! {
+        #[allow(clippy::too_many_arguments)]
         async fn #func_name(
             &self,
             ctx: &Context<'_>,
@@ -170,6 +171,7 @@ fn derive_update(input: &DeriveData) -> TokenStream2 {
     let mutate_permitted = input.auth_attribute().mutate;
 
     quote! {
+        #[allow(clippy::too_many_arguments)]
         async fn #func_name(
             &self,
             ctx: &Context<'_>,

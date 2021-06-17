@@ -35,8 +35,8 @@ fn derive_struct(input: &DeriveData) -> TokenStream2 {
         let Type { ty, wrapper, .. } = ty;
 
         match wrapper {
-            &Wrapper::Option => quote! { #ident: Option<Delta<#ty>> },
-            &Wrapper::Vec => quote! { #ident: Option<Delta<Vec<#ty>>> },
+            Wrapper::Option => quote! { #ident: Option<Delta<#ty>> },
+            Wrapper::Vec => quote! { #ident: Option<Delta<Vec<#ty>>> },
         }
     });
 
@@ -56,7 +56,7 @@ fn derive_store_trait(input: &DeriveData) -> TokenStream2 {
     let ident = Ident::new(format!("{}Store", ident_str).as_str(), ident.span());
 
     let identifier = match fields
-        .into_iter()
+        .iter()
         .find(|field| field.is_identifier())
         .expect("Every struct must have an identifier field")
         .ty

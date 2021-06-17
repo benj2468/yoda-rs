@@ -1,4 +1,13 @@
 type Query {
+	findAccount(id: String!): Account!
+	"""
+	Search for #base
+	### Defaults
+	Cursor: 0
+	
+	Limit: 100
+	"""
+	searchAccount(email: String, cursor: String, limit: Int): AccountConnection!
 	findOrganization(id: String!): Organization!
 	"""
 	Search for #base
@@ -9,11 +18,11 @@ type Query {
 	"""
 	searchOrganization(name: String, cursor: String, limit: Int): OrganizationConnection!
 }
-type Reference {
-	ty: String!
-	value: Identifier!
+type OrganizationCeoWithHash {
+	value: String
+	hash: String!
 }
-type OrganizationConnection {
+type AccountConnection {
 	"""
 	Information to aid in pagination.
 	"""
@@ -21,7 +30,7 @@ type OrganizationConnection {
 	"""
 	A list of edges.
 	"""
-	edges: [OrganizationEdge]
+	edges: [AccountEdge]
 }
 """
 Information about pagination in a connection
@@ -43,6 +52,88 @@ type PageInfo {
 	When paginating forwards, the cursor to continue.
 	"""
 	endCursor: String
+}
+"""
+An edge in a connection.
+"""
+type AccountEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Account!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+type Account {
+	identifier: AccountIdentifierWithHash!
+	email: AccountEmailWithHash!
+	password: AccountPasswordWithHash!
+	firstName: AccountFirstNameWithHash!
+	lastName: AccountLastNameWithHash!
+	interests: AccountInterestsWithHash!
+}
+type AccountIdentifierWithHash {
+	value: [Identifier!]!
+	hash: String!
+}
+type Identifier {
+	value: String!
+	system: IdentifierSystem!
+	tier: IdentifierTier!
+}
+enum IdentifierSystem {
+	YODA
+	OTHER
+}
+enum IdentifierTier {
+	PRIMARY
+	SECONDARY
+	OTHER
+}
+type AccountEmailWithHash {
+	value: String
+	hash: String!
+}
+type AccountPasswordWithHash {
+	value: String
+	hash: String!
+}
+type AccountFirstNameWithHash {
+	value: String
+	hash: String!
+}
+type AccountLastNameWithHash {
+	value: String
+	hash: String!
+}
+type AccountInterestsWithHash {
+	value: [Tag!]!
+	hash: String!
+}
+enum Tag {
+	RELIGIOUS
+	EDUCATION
+	POLITICS
+}
+type OrganizationManagingEntityWithHash {
+	value: [Reference!]!
+	hash: String!
+}
+type Reference {
+	ty: String!
+	value: Identifier!
+}
+type OrganizationConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [OrganizationEdge]
 }
 """
 An edge in a connection.
@@ -71,20 +162,6 @@ type OrganizationIdentifierWithHash {
 	value: [Identifier!]!
 	hash: String!
 }
-type Identifier {
-	value: String!
-	system: IdentifierSystem!
-	tier: IdentifierTier!
-}
-enum IdentifierSystem {
-	YODA
-	OTHER
-}
-enum IdentifierTier {
-	PRIMARY
-	SECONDARY
-	OTHER
-}
 type OrganizationNameWithHash {
 	value: String
 	hash: String!
@@ -111,22 +188,44 @@ type OrganizationTagWithHash {
 	value: [Tag!]!
 	hash: String!
 }
-enum Tag {
-	RELIGIOUS
-	EDUCATION
-	POLITICS
-}
-type OrganizationCeoWithHash {
-	value: String
-	hash: String!
-}
-type OrganizationManagingEntityWithHash {
-	value: [Reference!]!
-	hash: String!
-}
 type Mutate {
+	newAccount(identifier: [IdentifierInput!], email: String, password: String, firstName: String, lastName: String, interests: [Tag!]!): Identifier!
+	updateAccount(id: ID!, identifier: DeltaAccountIdentifier, email: DeltaAccountEmail, password: DeltaAccountPassword, firstName: DeltaAccountFirstName, lastName: DeltaAccountLastName, interests: DeltaAccountInterests): Account!
 	newOrganization(identifier: [IdentifierInput!], name: String, mission: String, description: String, established: DateTime, tag: [Tag!]!, ceo: String, managingEntity: [ReferenceInput!]): Identifier!
 	updateOrganization(id: ID!, identifier: DeltaOrganizationIdentifier, name: DeltaOrganizationName, mission: DeltaOrganizationMission, description: DeltaOrganizationDescription, established: DeltaOrganizationEstablished, tag: DeltaOrganizationTag, ceo: DeltaOrganizationCeo, managingEntity: DeltaOrganizationManagingEntity): Organization!
+}
+input DeltaOrganizationDescription {
+	start: String
+	end: String
+}
+input DeltaAccountFirstName {
+	start: String
+	end: String
+}
+input DeltaAccountLastName {
+	start: String
+	end: String
+}
+input DeltaAccountInterests {
+	start: String
+	end: [Tag!]
+}
+input IdentifierInput {
+	value: String!
+	system: IdentifierSystem!
+	tier: IdentifierTier!
+}
+input DeltaAccountIdentifier {
+	start: String
+	end: [IdentifierInput!]
+}
+input DeltaAccountEmail {
+	start: String
+	end: String
+}
+input DeltaAccountPassword {
+	start: String
+	end: String
 }
 input DeltaOrganizationEstablished {
 	start: String
@@ -144,11 +243,6 @@ input DeltaOrganizationManagingEntity {
 	start: String
 	end: [ReferenceInput!]
 }
-input IdentifierInput {
-	value: String!
-	system: IdentifierSystem!
-	tier: IdentifierTier!
-}
 input ReferenceInput {
 	ty: String!
 	value: IdentifierInput!
@@ -162,10 +256,6 @@ input DeltaOrganizationName {
 	end: String
 }
 input DeltaOrganizationMission {
-	start: String
-	end: String
-}
-input DeltaOrganizationDescription {
 	start: String
 	end: String
 }

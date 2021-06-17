@@ -11,6 +11,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "account-service"
+version = "0.1.0"
+dependencies = [
+ "async-graphql",
+ "atoms",
+ "auth",
+ "chrono",
+ "derive",
+ "serde",
+ "sqlx",
+ "store",
+]
+
+[[package]]
 name = "actix"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2697,6 +2711,7 @@ dependencies = [
 name = "schema"
 version = "0.1.0"
 dependencies = [
+ "account-service",
  "async-graphql",
  "org-service",
 ]

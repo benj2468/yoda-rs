@@ -1,7 +1,8 @@
 use actix_web::{dev::ServiceRequest, error::Result, HttpMessage};
 use actix_web_httpauth::extractors::bearer::BearerAuth;
-use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{decode, DecodingKey, Validation};
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
 mod role;
 pub use role::Role;
@@ -34,30 +35,28 @@ struct AppMetaData {
 
 impl Identity {
     pub async fn from_token(token: &str) -> Result<Self> {
-        let secret =
-            std::env::var("JWK").map_err(|e| actix_web::error::ErrorExpectationFailed(e))?;
+        let secret = std::env::var("JWK").map_err(actix_web::error::ErrorExpectationFailed)?;
 
         let token = decode::<Claims>(
             token,
             &DecodingKey::from_secret(secret.as_ref()),
             &Validation::default(),
         )
-        .map_err(|e| actix_web::error::ErrorForbidden(e))?;
+        .map_err(actix_web::error::ErrorForbidden)?;
 
-        let roles = token
+        let roles: Vec<_> = token
             .claims
             .app_metadata
             .roles
             .iter()
-            .map(|role| match role.as_str() {
-                "admin" => Ok(Role::Admin),
-                "user" => Ok(Role::User),
-                "organization" => Ok(Role::Organization),
-                _ => Err(actix_web::error::ErrorUnauthorized(
-                    "Must provide at least some role",
-                )),
-            })
-            .collect::<Result<Vec<Role>>>()?;
+            .filter_map(|role| Role::try_from(role).ok())
+            .collect();
+
+        if roles.is_empty() {
+            return Err(actix_web::error::ErrorForbidden(
+                "Must provide at least one role",
+            ));
+        }
 
         Ok(Self {
             roles,
