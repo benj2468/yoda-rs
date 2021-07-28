@@ -8,9 +8,9 @@ mod role;
 pub use role::Role;
 
 #[derive(Clone, PartialEq, Eq)]
-pub enum Action {
+pub enum Action<'a> {
     Query,
-    Update,
+    Mutate(&'a str),
     Create,
     All,
 }
@@ -20,6 +20,21 @@ pub struct Identity {
     pub user_id: String,
     pub roles: Vec<Role>,
 }
+
+/// # JWT Format
+/// {
+///     sub: id,
+///     exp: epoch in seconds,
+///     app_metadata: {
+///         roles: Vec<"user" | "organization" | "service" ...>
+///     }
+/// }
+///
+/// ## For an Account
+/// The `sub` should be the primary UUID for the user
+///
+/// ## For an Organization
+/// The `sub` should be the primary UUID for the organization
 
 #[derive(Debug, Serialize, Deserialize)]
 struct Claims {
@@ -64,14 +79,29 @@ impl Identity {
         })
     }
 
-    pub fn is_authorized(&self, permissive_roles: Vec<Role>) -> async_graphql::Result<()> {
-        permissive_roles
-            .into_iter()
-            .any(|role| self.roles.contains(&role))
-            .then(|| ())
-            .ok_or_else(|| {
-                async_graphql::Error::new("Your identitiy is not authorized to perform that action")
-            })
+    pub fn is_authorized(
+        &self,
+        action: Action,
+        permissive_roles: Vec<Role>,
+    ) -> async_graphql::Result<()> {
+        let permitted = self.roles.iter().any(|role| match role {
+            Role::Admin | Role::Service | Role::Organization => permissive_roles.contains(role),
+            Role::User => match action {
+                Action::Mutate(id) => {
+                    if permissive_roles.contains(&Role::Own) {
+                        id == self.user_id
+                    } else {
+                        true
+                    }
+                }
+                _ => true,
+            },
+            Role::Own => false,
+        });
+
+        permitted.then(|| ()).ok_or_else(|| {
+            async_graphql::Error::new("Your identity is not authorized to perform that action")
+        })
     }
 }
 
@@ -82,9 +112,11 @@ impl Validator {
         req: ServiceRequest,
         credentials: BearerAuth,
     ) -> Result<ServiceRequest> {
-        let token = credentials.token();
+        let identity = {
+            let token = credentials.token();
 
-        let identity = Identity::from_token(token).await?;
+            Identity::from_token(token).await?
+        };
 
         req.extensions_mut().insert(identity);
 

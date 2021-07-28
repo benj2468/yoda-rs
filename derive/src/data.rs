@@ -1,3 +1,6 @@
+use quote::ToTokens;
+use syn::parse_quote;
+
 use self::attribute::auth::AuthAttribute;
 use super::*;
 use std::convert::{TryFrom, TryInto};
@@ -67,12 +70,18 @@ impl Field {
     }
     pub fn wrapped(&self) -> TokenStream2 {
         let ty = &self.ty.ty;
+        self.wrap_other(ty)
+    }
+    pub fn wrap_other<T: ToTokens>(&self, ty: T) -> TokenStream2 {
         match self.ty.wrapper {
             Wrapper::Option => {
                 quote! { Option<#ty> }
             }
             Wrapper::Vec => {
                 quote! { Vec<#ty> }
+            }
+            Wrapper::None => {
+                quote! { #ty }
             }
         }
     }
@@ -118,7 +127,7 @@ impl From<syn::Type> for Type {
                 let wrapper = match seg.ident.to_string().as_str() {
                     "Option" => Wrapper::Option,
                     "Vec" => Wrapper::Vec,
-                    _ => unimplemented!("Type must be Vec or option wrapped"),
+                    _ => Wrapper::None,
                 };
 
                 Self { wrapper, ty }
@@ -149,6 +158,7 @@ impl Type {
 pub(crate) enum Wrapper {
     Option,
     Vec,
+    None,
 }
 
 fn get_inner_ty(origin: &PathSegment) -> syn::Type {
@@ -165,7 +175,13 @@ fn get_inner_ty(origin: &PathSegment) -> syn::Type {
                 _ => unimplemented!("Only type arguments supported"),
             }
         }
-        _ => unimplemented!("Only Angle Bracketed paths supported"),
+        PathArguments::None => {
+            let ident = &origin.ident;
+            parse_quote! {
+                #ident
+            }
+        }
+        _ => unimplemented!("Only Angle Bracketed paths supported: {:?}", origin),
     }
 }
 

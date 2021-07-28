@@ -43,7 +43,7 @@ fn derive_field_deltas(input: &DeriveData) -> Vec<TokenStream2> {
                         let ty = &ty.ty;
                         quote! { #ty }
                     }
-                    Wrapper::Vec => field.wrapped(),
+                    Wrapper::Vec | Wrapper::None => field.wrapped(),
                 };
 
                 quote! {
@@ -75,7 +75,7 @@ fn derive_field_deltas(input: &DeriveData) -> Vec<TokenStream2> {
 
                 let conversion = match &ty.wrapper {
                     Wrapper::Vec => quote! { delta.end.map(|vec| vec.into_iter().map(|id| id.into()).collect()) },
-                    Wrapper::Option => quote! {
+                    Wrapper::Option | Wrapper::None => quote! {
                         delta.end.map(|e| e.into())
                     },
                 };
@@ -93,7 +93,7 @@ fn derive_field_deltas(input: &DeriveData) -> Vec<TokenStream2> {
                 };
 
                 let store_ty = match ty.wrapper {
-                    Wrapper::Vec => field.wrapped(),
+                    Wrapper::Vec | Wrapper::None => field.wrapped(),
                     Wrapper::Option => {
                         let ty = &ty.ty;
                         quote! { #ty }

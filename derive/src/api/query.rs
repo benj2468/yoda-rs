@@ -62,7 +62,7 @@ fn derive_find(input: &DeriveData) -> TokenStream2 {
         async fn #func_name(&self, ctx: &Context<'_>, id: String) -> Result<#base> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            identity.is_authorized(vec![#(#query_permitted),*])?;
+            identity.is_authorized(auth::Action::Query, vec![#(#query_permitted),*])?;
 
             let dels = store::sql::Driver::query::<#base, #store>(pool, &id)
                 .await
@@ -102,8 +102,10 @@ fn derive_search_func(input: &DeriveData) -> TokenStream2 {
         .filter(|field| field.attributes.contains(&Attribute::Search))
         .map(|field| &field.ident);
 
+    let search_for_comment = format!("Search for {}", base.to_string());
+
     quote! {
-        /// Search for #base
+        #[doc = #search_for_comment]
         /// ### Defaults
         /// Cursor: 0
         ///
@@ -118,7 +120,7 @@ fn derive_search_func(input: &DeriveData) -> TokenStream2 {
         ) -> Result<Connection<usize, #base>> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            identity.is_authorized(vec![#(#query_permitted),*])?;
+            identity.is_authorized(auth::Action::All, vec![#(#query_permitted),*])?;
 
             let doc = #search { #(#search_idents,)* };
 
@@ -177,7 +179,7 @@ fn derive_search_struct(input: &DeriveData) -> TokenStream2 {
             let Field { ty, .. } = field;
 
             match ty.wrapper {
-                Wrapper::Option => None,
+                Wrapper::Option | Wrapper::None => None,
                 Wrapper::Vec => Some(""),
             }
         });
@@ -190,7 +192,9 @@ fn derive_search_struct(input: &DeriveData) -> TokenStream2 {
             let Field { ident, ty, .. } = field;
 
             let path = match ty.wrapper {
-                Wrapper::Option => format!("body -> '{}' ->> 'end' LIKE $", ident.to_string()),
+                Wrapper::Option | Wrapper::None => {
+                    format!("body -> '{}' ->> 'end' LIKE $", ident.to_string())
+                }
                 Wrapper::Vec => format!("{}_array ->> 'end' LIKE $", ident.to_string()),
             };
 

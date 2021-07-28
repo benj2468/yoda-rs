@@ -1,28 +1,37 @@
 type Query {
-	findAccount(id: String!): Account!
+	findTransaction(id: String!): Transaction!
 	"""
-	Search for #base
+	Search for Transaction
 	### Defaults
 	Cursor: 0
 	
 	Limit: 100
 	"""
-	searchAccount(email: String, cursor: String, limit: Int): AccountConnection!
+	searchTransaction(amount: Int, cursor: String, limit: Int): TransactionConnection!
 	findOrganization(id: String!): Organization!
 	"""
-	Search for #base
+	Search for Organization
 	### Defaults
 	Cursor: 0
 	
 	Limit: 100
 	"""
 	searchOrganization(name: String, cursor: String, limit: Int): OrganizationConnection!
+	findAccount(id: String!): Account!
+	"""
+	Search for Account
+	### Defaults
+	Cursor: 0
+	
+	Limit: 100
+	"""
+	searchAccount(email: String, cursor: String, limit: Int): AccountConnection!
 }
-type OrganizationCeoWithHash {
-	value: String
+type AccountTransactionsWithHash {
+	value: [Reference!]!
 	hash: String!
 }
-type AccountConnection {
+type TransactionConnection {
 	"""
 	Information to aid in pagination.
 	"""
@@ -30,7 +39,7 @@ type AccountConnection {
 	"""
 	A list of edges.
 	"""
-	edges: [AccountEdge]
+	edges: [TransactionEdge]
 }
 """
 Information about pagination in a connection
@@ -56,25 +65,23 @@ type PageInfo {
 """
 An edge in a connection.
 """
-type AccountEdge {
+type TransactionEdge {
 	"""
 	The item at the end of the edge
 	"""
-	node: Account!
+	node: Transaction!
 	"""
 	A cursor for use in pagination
 	"""
 	cursor: String!
 }
-type Account {
-	identifier: AccountIdentifierWithHash!
-	email: AccountEmailWithHash!
-	password: AccountPasswordWithHash!
-	firstName: AccountFirstNameWithHash!
-	lastName: AccountLastNameWithHash!
-	interests: AccountInterestsWithHash!
+type Transaction {
+	identifier: TransactionIdentifierWithHash!
+	amount: TransactionAmountWithHash!
+	paymentMethod: TransactionPaymentMethodWithHash!
+	completed: TransactionCompletedWithHash!
 }
-type AccountIdentifierWithHash {
+type TransactionIdentifierWithHash {
 	value: [Identifier!]!
 	hash: String!
 }
@@ -86,44 +93,42 @@ type Identifier {
 enum IdentifierSystem {
 	YODA
 	OTHER
+	STRIPE
 }
 enum IdentifierTier {
 	PRIMARY
 	SECONDARY
 	OTHER
 }
-type AccountEmailWithHash {
-	value: String
+type TransactionAmountWithHash {
+	value: Int
 	hash: String!
 }
-type AccountPasswordWithHash {
-	value: String
-	hash: String!
-}
-type AccountFirstNameWithHash {
-	value: String
-	hash: String!
-}
-type AccountLastNameWithHash {
-	value: String
-	hash: String!
-}
-type AccountInterestsWithHash {
-	value: [Tag!]!
-	hash: String!
-}
-enum Tag {
-	RELIGIOUS
-	EDUCATION
-	POLITICS
-}
-type OrganizationManagingEntityWithHash {
+type TransactionPaymentMethodWithHash {
 	value: [Reference!]!
 	hash: String!
 }
 type Reference {
-	ty: String!
+	ty: ReferenceType!
 	value: Identifier!
+}
+enum ReferenceType {
+	STRIPE_TRANSACTION
+	STRIPE_PAYMENT_METHOD
+	USER
+	ORGANIZATION
+}
+type TransactionCompletedWithHash {
+	value: Boolean
+	hash: String!
+}
+type AccountPaymentMethodWithHash {
+	value: [Reference!]!
+	hash: String!
+}
+type OrganizationManagingEntityWithHash {
+	value: [Reference!]!
+	hash: String!
 }
 type OrganizationConnection {
 	"""
@@ -188,48 +193,125 @@ type OrganizationTagWithHash {
 	value: [Tag!]!
 	hash: String!
 }
+enum Tag {
+	RELIGIOUS
+	EDUCATION
+	POLITICS
+}
+type OrganizationCeoWithHash {
+	value: String
+	hash: String!
+}
+type AccountAddressWithHash {
+	value: [Address!]!
+	hash: String!
+}
+type Address {
+	number: Int
+	street: String
+	city: String
+	state: String
+	country: String
+	postalCode: String
+}
+type AccountConnection {
+	"""
+	Information to aid in pagination.
+	"""
+	pageInfo: PageInfo!
+	"""
+	A list of edges.
+	"""
+	edges: [AccountEdge]
+}
+"""
+An edge in a connection.
+"""
+type AccountEdge {
+	"""
+	The item at the end of the edge
+	"""
+	node: Account!
+	"""
+	A cursor for use in pagination
+	"""
+	cursor: String!
+}
+type Account {
+	identifier: AccountIdentifierWithHash!
+	email: AccountEmailWithHash!
+	password: AccountPasswordWithHash!
+	firstName: AccountFirstNameWithHash!
+	lastName: AccountLastNameWithHash!
+	interests: AccountInterestsWithHash!
+	transactions: AccountTransactionsWithHash!
+	paymentMethod: AccountPaymentMethodWithHash!
+	address: AccountAddressWithHash!
+}
+type AccountIdentifierWithHash {
+	value: [Identifier!]!
+	hash: String!
+}
+type AccountEmailWithHash {
+	value: String
+	hash: String!
+}
+type AccountPasswordWithHash {
+	value: String
+	hash: String!
+}
+type AccountFirstNameWithHash {
+	value: String
+	hash: String!
+}
+type AccountLastNameWithHash {
+	value: String
+	hash: String!
+}
+type AccountInterestsWithHash {
+	value: [Tag!]!
+	hash: String!
+}
 type Mutate {
-	newAccount(identifier: [IdentifierInput!], email: String, password: String, firstName: String, lastName: String, interests: [Tag!]!): Identifier!
-	updateAccount(id: ID!, identifier: DeltaAccountIdentifier, email: DeltaAccountEmail, password: DeltaAccountPassword, firstName: DeltaAccountFirstName, lastName: DeltaAccountLastName, interests: DeltaAccountInterests): Account!
+	newTransaction(identifier: [IdentifierInput!], amount: Int, paymentMethod: [ReferenceInput!], completed: Boolean): Identifier!
+	updateTransaction(id: ID!, identifier: DeltaTransactionIdentifier, amount: DeltaTransactionAmount, paymentMethod: DeltaTransactionPaymentMethod, completed: DeltaTransactionCompleted): Transaction!
 	newOrganization(identifier: [IdentifierInput!], name: String, mission: String, description: String, established: DateTime, tag: [Tag!]!, ceo: String, managingEntity: [ReferenceInput!]): Identifier!
 	updateOrganization(id: ID!, identifier: DeltaOrganizationIdentifier, name: DeltaOrganizationName, mission: DeltaOrganizationMission, description: DeltaOrganizationDescription, established: DeltaOrganizationEstablished, tag: DeltaOrganizationTag, ceo: DeltaOrganizationCeo, managingEntity: DeltaOrganizationManagingEntity): Organization!
-}
-input DeltaOrganizationDescription {
-	start: String
-	end: String
+	newAccount(identifier: [IdentifierInput!], email: String, password: String, firstName: String, lastName: String, interests: [Tag!]!, transactions: [ReferenceInput!], paymentMethod: [ReferenceInput!], address: [AddressInput!]): Identifier!
+	updateAccount(id: ID!, identifier: DeltaAccountIdentifier, email: DeltaAccountEmail, password: DeltaAccountPassword, firstName: DeltaAccountFirstName, lastName: DeltaAccountLastName, interests: DeltaAccountInterests, transactions: DeltaAccountTransactions, paymentMethod: DeltaAccountPaymentMethod, address: DeltaAccountAddress): Account!
 }
 input DeltaAccountFirstName {
 	start: String
 	end: String
 }
-input DeltaAccountLastName {
+input DeltaTransactionAmount {
 	start: String
-	end: String
+	end: Int
 }
-input DeltaAccountInterests {
+input DeltaTransactionPaymentMethod {
 	start: String
-	end: [Tag!]
+	end: [ReferenceInput!]
+}
+input DeltaTransactionCompleted {
+	start: String
+	end: Boolean
 }
 input IdentifierInput {
 	value: String!
 	system: IdentifierSystem!
 	tier: IdentifierTier!
 }
-input DeltaAccountIdentifier {
+input ReferenceInput {
+	ty: ReferenceType!
+	value: IdentifierInput!
+}
+input DeltaTransactionIdentifier {
 	start: String
 	end: [IdentifierInput!]
 }
-input DeltaAccountEmail {
+input DeltaAccountLastName {
 	start: String
 	end: String
-}
-input DeltaAccountPassword {
-	start: String
-	end: String
-}
-input DeltaOrganizationEstablished {
-	start: String
-	end: DateTime
 }
 input DeltaOrganizationTag {
 	start: String
@@ -243,10 +325,6 @@ input DeltaOrganizationManagingEntity {
 	start: String
 	end: [ReferenceInput!]
 }
-input ReferenceInput {
-	ty: String!
-	value: IdentifierInput!
-}
 input DeltaOrganizationIdentifier {
 	start: String
 	end: [IdentifierInput!]
@@ -256,6 +334,50 @@ input DeltaOrganizationName {
 	end: String
 }
 input DeltaOrganizationMission {
+	start: String
+	end: String
+}
+input DeltaOrganizationDescription {
+	start: String
+	end: String
+}
+input DeltaOrganizationEstablished {
+	start: String
+	end: DateTime
+}
+input DeltaAccountInterests {
+	start: String
+	end: [Tag!]
+}
+input DeltaAccountTransactions {
+	start: String
+	end: [ReferenceInput!]
+}
+input DeltaAccountPaymentMethod {
+	start: String
+	end: [ReferenceInput!]
+}
+input DeltaAccountAddress {
+	start: String
+	end: [AddressInput!]
+}
+input AddressInput {
+	number: Int
+	street: String
+	city: String
+	state: String
+	country: String
+	postalCode: String
+}
+input DeltaAccountIdentifier {
+	start: String
+	end: [IdentifierInput!]
+}
+input DeltaAccountEmail {
+	start: String
+	end: String
+}
+input DeltaAccountPassword {
 	start: String
 	end: String
 }

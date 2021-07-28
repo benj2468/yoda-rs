@@ -67,7 +67,7 @@ fn derive_resolvers(input: &DeriveData) -> Vec<TokenStream2> {
             let output_ty = with_hash_ident(base, field);
 
             let hashing = match ty.wrapper {
-                Wrapper::Vec => quote! {
+                Wrapper::Vec | Wrapper::None => quote! {
                     value.hash(&mut hasher);
                 },
                 Wrapper::Option => {

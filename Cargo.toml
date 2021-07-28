@@ -12,13 +12,14 @@ actix-rt = "1.1.0"
 async-graphql = "2.8.5"
 async-graphql-actix-web = "2.8.5"
 auth = { path = "auth" }
-org-service = { path = "org-service" }
+model = { path = "model" }
 actix-web-httpauth = "0.5.1"
 dotenv = "0.15.0"
 store = { path = "store" }
 schema = { path = "schema" }
 sqlx = { version = "0.5", features = ["postgres", "runtime-async-std-native-tls"] }
 actix-cors = "0.5.4"
+env_logger = "0.8.4"
 
 [build-dependencies]
 async-graphql = "2.8.5"
@@ -26,11 +27,10 @@ schema = { path = "schema" }
 
 [workspace]
 members = [
-    "org-service",
+    "model",
     "auth",
     "store",
     "schema",
     "derive",
     "atoms",
-    "account-service"
 ]

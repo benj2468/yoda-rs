@@ -51,6 +51,7 @@ fn derive_new(input: &DeriveData) -> TokenStream2 {
             match ty.wrapper {
                 Wrapper::Option => quote! { Option<#ident> },
                 Wrapper::Vec => quote! { Option<Vec<#ident>> },
+                Wrapper::None => quote! { #ident },
             }
         } else {
             field.wrapped()
@@ -77,6 +78,11 @@ fn derive_new(input: &DeriveData) -> TokenStream2 {
                             #name: #name.map(|val| val.into())
                         }
                     }
+                    Wrapper::None => {
+                        quote! {
+                            #name: #name.into()
+                        }
+                    }
                 }
             } else {
                 quote! { #name }
@@ -94,7 +100,7 @@ fn derive_new(input: &DeriveData) -> TokenStream2 {
         ) -> Result<atoms::Identifier> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            identity.is_authorized(vec![#(#mutate_permitted),*])?;
+            identity.is_authorized(auth::Action::Create, vec![#(#mutate_permitted),*])?;
 
             let mut identifier: Vec<_> = identifier
                 .unwrap_or_default()
@@ -180,7 +186,7 @@ fn derive_update(input: &DeriveData) -> TokenStream2 {
         ) -> Result<#base> {
             let identity = ctx.data::<auth::Identity>()?;
             let pool = ctx.data::<sqlx::PgPool>()?;
-            identity.is_authorized(vec![#(#mutate_permitted),*])?;
+            identity.is_authorized(auth::Action::Mutate(&id), vec![#(#mutate_permitted),*])?;
 
             let delta = #store {
                 #(#fields,)*

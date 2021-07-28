@@ -8,6 +8,9 @@ pub enum Role {
     Organization,
     Admin,
     Service,
+
+    // Inner facing role
+    Own,
 }
 
 impl TryFrom<&String> for Role {
@@ -18,6 +21,7 @@ impl TryFrom<&String> for Role {
             "organization" => Ok(Self::Organization),
             "admin" => Ok(Self::Admin),
             "service" => Ok(Self::Service),
+            "self" => Ok(Self::Own),
             _ => Err(format!(
                 "No Role specified for that string: {}",
                 input.as_str()

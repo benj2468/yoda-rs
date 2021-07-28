@@ -37,6 +37,7 @@ fn derive_struct(input: &DeriveData) -> TokenStream2 {
         match wrapper {
             Wrapper::Option => quote! { #ident: Option<Delta<#ty>> },
             Wrapper::Vec => quote! { #ident: Option<Delta<Vec<#ty>>> },
+            Wrapper::None => quote! { #ident: Delta<Vec<#ty>> },
         }
     });
 
@@ -104,7 +105,7 @@ fn derive_del_trait(input: &DeriveData) -> TokenStream2 {
             return quote! {};
         };
         match field.ty.wrapper {
-            Wrapper::Vec => quote! {
+            Wrapper::Vec | Wrapper::None => quote! {
                 if let Some(new) = check_delta(Some(&#ident), del.#ident.unwrap_or_default()) {
                     *#ident = new
                 }
@@ -143,7 +144,7 @@ fn derive_translations(input: &DeriveData) -> TokenStream2 {
             let name = &field.ident;
             match field.ty.wrapper {
                 Wrapper::Option => quote! { #name: Delta::init(org.#name) },
-                Wrapper::Vec => quote! { #name: Delta::init(Some(org.#name)) },
+                Wrapper::Vec | Wrapper::None => quote! { #name: Delta::init(Some(org.#name)) },
             }
         });
 
@@ -165,7 +166,7 @@ fn derive_translations(input: &DeriveData) -> TokenStream2 {
                 Wrapper::Option => {
                     quote! { #name: store.#name.and_then(|del| del.end.into()) }
                 }
-                Wrapper::Vec => {
+                Wrapper::Vec | Wrapper::None => {
                     quote! { #name: store.#name.and_then(|del| del.end).unwrap_or_default() }
                 }
             }

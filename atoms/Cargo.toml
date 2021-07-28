@@ -12,3 +12,4 @@ derive_more = "0.99.14"
 serde = "1.0.126"
 sqlx = { version = "0.5", features = ["postgres", "runtime-async-std-native-tls", "chrono"] }
 uuid = { version = "0.8.2", features = ["v4"] }
+derive = { path = "../derive" }

@@ -1,11 +1,12 @@
 use async_graphql::{Enum, InputObject, SimpleObject};
 use derive_more::Display;
+use serde::{Deserialize, Serialize};
 
 pub mod delta;
 pub mod pagination;
 pub mod search;
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Hash, Clone, Debug, PartialEq)]
+#[derive(SimpleObject, Serialize, Deserialize, Hash, Clone, Debug, PartialEq, Eq)]
 pub struct Identifier {
     pub value: String,
     pub system: IdentifierSystem,
@@ -32,24 +33,21 @@ impl ToString for Identifier {
     }
 }
 
-#[derive(
-    Enum, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Hash, Display, Debug,
-)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, Debug)]
 pub enum IdentifierTier {
     Primary,
     Secondary,
     Other,
 }
 
-#[derive(
-    Enum, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Hash, Display, Debug,
-)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Display, Debug)]
 pub enum IdentifierSystem {
     Yoda,
     Other,
+    Stripe,
 }
 
-#[derive(InputObject)]
+#[derive(InputObject, Clone, Debug)]
 pub struct IdentifierInput {
     pub value: String,
     pub system: IdentifierSystem,
@@ -75,30 +73,24 @@ impl From<IdentifierInput> for Identifier {
     }
 }
 
-#[derive(Enum, Clone, Copy, PartialEq, Eq, Debug, serde::Serialize, serde::Deserialize, Hash)]
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
 pub enum Tag {
     Religious,
     Education,
     Politics,
 }
 
-#[derive(SimpleObject, serde::Serialize, serde::Deserialize, Hash, Clone, Debug, PartialEq)]
+#[derive::Support]
 pub struct Reference {
-    ty: String,
+    ty: ReferenceType,
+    #[construct]
     value: Identifier,
 }
 
-#[derive(InputObject)]
-pub struct ReferenceInput {
-    pub ty: String,
-    pub value: IdentifierInput,
-}
-
-impl From<ReferenceInput> for Reference {
-    fn from(input: ReferenceInput) -> Self {
-        Self {
-            ty: input.ty,
-            value: input.value.into(),
-        }
-    }
+#[derive(Enum, Clone, Copy, PartialEq, Eq, Debug, Serialize, Deserialize, Hash)]
+pub enum ReferenceType {
+    StripeTransaction,
+    StripePaymentMethod,
+    User,
+    Organization,
 }

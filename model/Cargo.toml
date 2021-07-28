@@ -1,6 +1,6 @@
 
 [package]
-name = "org-service"
+name = "model"
 version = "0.1.0"
 authors = ["benjcape"]
 edition = "2018"

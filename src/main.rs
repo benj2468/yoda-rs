@@ -1,9 +1,10 @@
 use actix_cors::Cors;
-use actix_web::{guard, web, App, HttpRequest, HttpResponse, HttpServer, Result};
+use actix_web::{
+    guard, middleware::Logger, web, App, HttpRequest, HttpResponse, HttpServer, Result,
+};
 use actix_web_httpauth::middleware::HttpAuthentication;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig};
 use async_graphql_actix_web::{Request, Response};
-
 use schema::YodaSchema;
 use yoda::Config;
 
@@ -27,6 +28,9 @@ async fn index_playground() -> Result<HttpResponse> {
 async fn main() -> std::io::Result<()> {
     dotenv::dotenv().ok();
 
+    std::env::set_var("RUST_LOG", "actix_web=info");
+    env_logger::init();
+
     let config = Config::new()?;
 
     println!("Playground: http://localhost:8000");
@@ -36,6 +40,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         let cors = Cors::permissive();
         App::new()
+            .wrap(Logger::default())
             .wrap(cors)
             .data(schema.clone())
             .service(
